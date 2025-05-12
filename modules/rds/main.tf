@@ -188,4 +188,13 @@ resource "aws_security_group" "efs" {
   }
 }
 
-data "aws_region" "current" {} 
+data "aws_region" "current" {}
+
+# Recurso para ejecutar el script SQL inicial
+resource "null_resource" "db_setup" {
+  depends_on = [aws_db_instance.postgresql]
+
+  provisioner "local-exec" {
+    command = "PGPASSWORD='${var.db_password}' psql -h ${replace(aws_db_instance.postgresql.endpoint, ":5432", "")} -p 5432 -U ${var.db_username} -d ${aws_db_instance.postgresql.db_name} -f ${path.module}/migrations/V1__create_tables.sql"
+  }
+} 
