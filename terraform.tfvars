@@ -1,0 +1,5 @@
+aws_region   = "us-east-1"
+environment  = "dev"
+project_name = "nequi-prueba"
+db_username  = "abc"
+db_password  = "clave123"
