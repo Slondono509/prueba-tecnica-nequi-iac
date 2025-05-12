@@ -36,7 +36,7 @@ resource "aws_security_group" "rds" {
 resource "aws_db_instance" "postgresql" {
   identifier           = "${var.project_name}-${var.environment}"
   engine              = "postgres"
-  engine_version      = "14.7"
+  engine_version      = "14.18"
   instance_class      = "db.t3.micro"
   allocated_storage   = 20
   storage_type        = "gp2"
@@ -84,4 +84,105 @@ resource "aws_secretsmanager_secret_version" "rds_credentials" {
     port     = 5432
     dbname   = aws_db_instance.postgresql.db_name
   })
-} 
+}
+
+# ECS Task Definition para Flyway
+resource "aws_ecs_task_definition" "flyway" {
+  family                   = "${var.project_name}-flyway-${var.environment}"
+  network_mode             = "awsvpc"
+  requires_compatibilities = ["FARGATE"]
+  cpu                      = "256"
+  memory                   = "512"
+  execution_role_arn       = var.ecs_execution_role_arn
+  task_role_arn           = var.ecs_task_role_arn
+
+  container_definitions = jsonencode([
+    {
+      name  = "flyway"
+      image = "flyway/flyway:9.21"
+      
+      command = [
+        "migrate",
+        "-url=jdbc:postgresql://${aws_db_instance.postgresql.endpoint}/${aws_db_instance.postgresql.db_name}",
+        "-user=${var.db_username}",
+        "-password=${var.db_password}",
+        "-locations=filesystem:/flyway/sql"
+      ]
+
+      mountPoints = [
+        {
+          sourceVolume  = "migrations"
+          containerPath = "/flyway/sql"
+          readOnly     = true
+        }
+      ]
+
+      logConfiguration = {
+        logDriver = "awslogs"
+        options = {
+          awslogs-group         = "/ecs/${var.project_name}-flyway-${var.environment}"
+          awslogs-region        = data.aws_region.current.name
+          awslogs-stream-prefix = "flyway"
+        }
+      }
+    }
+  ])
+
+  volume {
+    name = "migrations"
+    efs_volume_configuration {
+      file_system_id = aws_efs_file_system.migrations.id
+      root_directory = "/"
+    }
+  }
+
+  tags = {
+    Name        = "${var.project_name}-flyway-task-${var.environment}"
+    Environment = var.environment
+  }
+}
+
+# EFS para almacenar los scripts de migración
+resource "aws_efs_file_system" "migrations" {
+  creation_token = "${var.project_name}-migrations-${var.environment}"
+  encrypted      = true
+
+  tags = {
+    Name        = "${var.project_name}-migrations-${var.environment}"
+    Environment = var.environment
+  }
+}
+
+resource "aws_efs_mount_target" "migrations" {
+  count           = length(var.private_subnets)
+  file_system_id  = aws_efs_file_system.migrations.id
+  subnet_id       = var.private_subnets[count.index]
+  security_groups = [aws_security_group.efs.id]
+}
+
+resource "aws_security_group" "efs" {
+  name        = "${var.project_name}-efs-sg-${var.environment}"
+  description = "Security group para EFS"
+  vpc_id      = var.vpc_id
+
+  ingress {
+    from_port       = 2049
+    to_port         = 2049
+    protocol        = "tcp"
+    security_groups = [var.ecs_security_group_id]
+  }
+
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  tags = {
+    Name        = "${var.project_name}-efs-sg-${var.environment}"
+    Environment = var.environment
+  }
+}
+
+data "aws_region" "current" {} 

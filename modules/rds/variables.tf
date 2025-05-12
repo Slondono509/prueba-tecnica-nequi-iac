@@ -33,4 +33,14 @@ variable "db_password" {
 variable "ecs_security_group_id" {
   description = "ID del grupo de seguridad de ECS"
   type        = string
+}
+
+variable "ecs_execution_role_arn" {
+  description = "ARN del rol de ejecución de ECS"
+  type        = string
+}
+
+variable "ecs_task_role_arn" {
+  description = "ARN del rol de tarea de ECS"
+  type        = string
 } 

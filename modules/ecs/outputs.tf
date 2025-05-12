@@ -13,12 +13,12 @@ output "alb_dns_name" {
   value       = aws_lb.main.dns_name
 }
 
-output "ecs_security_group_id" {
-  description = "ID del grupo de seguridad de ECS"
-  value       = aws_security_group.ecs.id
-}
-
 output "alb_security_group_id" {
   description = "ID del grupo de seguridad del ALB"
   value       = aws_security_group.alb.id
+}
+
+output "alb_listener_arn" {
+  description = "ARN del listener del ALB"
+  value       = aws_lb_listener.http.arn
 } 
