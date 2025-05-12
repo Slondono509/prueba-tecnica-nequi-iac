@@ -1,23 +1,24 @@
 resource "aws_db_subnet_group" "main" {
-  name       = "${var.project_name}-${var.environment}"
-  subnet_ids = var.private_subnets
+  name        = var.project_name
+  subnet_ids  = var.private_subnets
+  description = "Grupo de subredes para RDS"
 
   tags = {
-    Name        = "${var.project_name}-db-subnet-group-${var.environment}"
-    Environment = var.environment
+    Name = "${var.project_name}-subnet-group-${var.environment}"
   }
 }
 
 resource "aws_security_group" "rds" {
   name        = "${var.project_name}-rds-sg-${var.environment}"
-  description = "Security group para RDS PostgreSQL"
+  description = "Security group para RDS"
   vpc_id      = var.vpc_id
 
   ingress {
-    from_port       = 5432
-    to_port         = 5432
-    protocol        = "tcp"
-    security_groups = [var.ecs_security_group_id]
+    from_port   = 5432
+    to_port     = 5432
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+    description = "Allow PostgreSQL access from anywhere"
   }
 
   egress {
@@ -28,46 +29,47 @@ resource "aws_security_group" "rds" {
   }
 
   tags = {
-    Name        = "${var.project_name}-rds-sg-${var.environment}"
-    Environment = var.environment
+    Name = "${var.project_name}-rds-sg-${var.environment}"
   }
 }
 
 resource "aws_db_instance" "postgresql" {
-  identifier           = "${var.project_name}-${var.environment}"
-  engine              = "postgres"
-  engine_version      = "14.18"
-  instance_class      = "db.t3.micro"
-  allocated_storage   = 20
-  storage_type        = "gp2"
-  storage_encrypted   = true
-  
-  db_name             = replace("${var.project_name}_${var.environment}", "-", "_")
-  username            = var.db_username
-  password            = var.db_password
-  
-  multi_az                = false
-  db_subnet_group_name   = aws_db_subnet_group.main.name
+  identifier = "${var.project_name}-${var.environment}"
+  engine     = "postgres"
+  engine_version = "14.18"
+  instance_class = "db.t3.micro"
+
+  allocated_storage = 20
+  storage_type      = "gp2"
+  storage_encrypted = true
+
+  db_name  = replace("${var.project_name}_${var.environment}", "-", "_")
+  username = var.db_username
+  password = var.db_password
+  port     = 5432
+
   vpc_security_group_ids = [aws_security_group.rds.id]
-  
+  db_subnet_group_name   = aws_db_subnet_group.main.name
+  publicly_accessible    = true
+
   backup_retention_period = 7
   backup_window          = "03:00-04:00"
   maintenance_window     = "Mon:04:00-Mon:05:00"
-  
-  skip_final_snapshot    = true
-  
+
+  skip_final_snapshot = true
+
   enabled_cloudwatch_logs_exports = ["postgresql", "upgrade"]
-  
+
   performance_insights_enabled = true
-  
+  performance_insights_retention_period = 7
+
   tags = {
-    Name        = "${var.project_name}-rds-${var.environment}"
-    Environment = var.environment
+    Name = "${var.project_name}-rds-${var.environment}"
   }
 }
 
 resource "aws_secretsmanager_secret" "rds_credentials" {
-  name = "${var.project_name}-rds-credentials-${var.environment}"
+  name = "${var.project_name}-rds-credentials-${var.environment}-${random_string.suffix.result}"
   
   tags = {
     Name        = "${var.project_name}-rds-credentials-${var.environment}"
@@ -83,6 +85,7 @@ resource "aws_secretsmanager_secret_version" "rds_credentials" {
     host     = aws_db_instance.postgresql.endpoint
     port     = 5432
     dbname   = aws_db_instance.postgresql.db_name
+    url      = "r2dbc:postgresql://${aws_db_instance.postgresql.endpoint}/${aws_db_instance.postgresql.db_name}"
   })
 }
 

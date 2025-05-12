@@ -26,6 +26,26 @@ resource "aws_iam_role_policy_attachment" "ecs_execution_role_policy" {
   policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"
 }
 
+resource "aws_iam_role_policy" "ecs_execution_secrets_policy" {
+  name = "${var.project_name}-ecs-execution-secrets-policy-${var.environment}"
+  role = aws_iam_role.ecs_execution_role.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "secretsmanager:GetSecretValue"
+        ]
+        Resource = [
+          var.db_secret_arn
+        ]
+      }
+    ]
+  })
+}
+
 resource "aws_iam_role" "ecs_task_role" {
   name = "${var.project_name}-ecs-task-role-${var.environment}"
 
@@ -93,7 +113,7 @@ resource "aws_ecs_task_definition" "main" {
       secrets = [
         {
           name      = "SPRING_R2DBC_URL"
-          valueFrom = "${var.db_secret_arn}:host::"
+          valueFrom = "${var.db_secret_arn}:url::"
         },
         {
           name      = "SPRING_R2DBC_USERNAME"
@@ -138,6 +158,8 @@ resource "aws_ecs_service" "main" {
   launch_type                       = "FARGATE"
   platform_version                  = "LATEST"
   health_check_grace_period_seconds = 60
+  force_new_deployment              = true
+  enable_execute_command           = true
 
   network_configuration {
     subnets          = var.private_subnets
@@ -159,6 +181,9 @@ resource "aws_ecs_service" "main" {
     enable   = true
     rollback = true
   }
+
+  deployment_maximum_percent         = 200
+  deployment_minimum_healthy_percent = 100
 
   tags = {
     Name        = "${var.project_name}-service-${var.environment}"
@@ -245,6 +270,35 @@ resource "aws_lb_listener" "http" {
     type             = "forward"
     target_group_arn = aws_lb_target_group.main.arn
   }
+}
+
+resource "aws_cloudwatch_log_group" "ecs" {
+  name              = "/ecs/${var.project_name}-${var.environment}"
+  retention_in_days = 7
+
+  tags = {
+    Name        = "${var.project_name}-logs-${var.environment}"
+    Environment = var.environment
+  }
+}
+
+resource "aws_iam_role_policy" "ecs_execution_logs_policy" {
+  name = "${var.project_name}-ecs-execution-logs-policy-${var.environment}"
+  role = aws_iam_role.ecs_execution_role.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "logs:CreateLogStream",
+          "logs:PutLogEvents"
+        ]
+        Resource = "${aws_cloudwatch_log_group.ecs.arn}:*"
+      }
+    ]
+  })
 }
 
 data "aws_region" "current" {} 

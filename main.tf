@@ -55,10 +55,10 @@ module "rds" {
   project_name           = var.project_name
   environment            = var.environment
   vpc_id                = module.vpc.vpc_id
-  private_subnets       = module.vpc.private_subnets
+  private_subnets       = module.vpc.public_subnets
+  ecs_security_group_id = module.iam.ecs_security_group_id
   db_username           = var.db_username
   db_password           = var.db_password
-  ecs_security_group_id = module.iam.ecs_security_group_id
   ecs_execution_role_arn = module.iam.ecs_execution_role_arn
   ecs_task_role_arn     = module.iam.ecs_task_role_arn
 
@@ -79,12 +79,12 @@ module "ecs" {
   desired_count         = var.desired_count
   ecr_repository_url    = module.ecr.repository_url
   health_check_path     = var.health_check_path
-  db_secret_arn         = module.rds.secret_arn
   ecs_execution_role_arn = module.iam.ecs_execution_role_arn
   ecs_task_role_arn     = module.iam.ecs_task_role_arn
   ecs_security_group_id = module.iam.ecs_security_group_id
+  db_secret_arn         = module.rds.secret_arn
 
-  depends_on = [module.vpc, module.ecr, module.rds, module.iam]
+  depends_on = [module.vpc, module.ecr, module.iam, module.rds]
 }
 
 module "api_gateway" {

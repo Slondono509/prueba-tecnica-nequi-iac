@@ -1,5 +1,5 @@
 output "secret_arn" {
-  description = "ARN del secreto que contiene las credenciales de RDS"
+  description = "ARN del secreto que contiene las credenciales de la base de datos"
   value       = aws_secretsmanager_secret.rds_credentials.arn
 }
 

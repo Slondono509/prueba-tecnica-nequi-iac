@@ -4,7 +4,7 @@ variable "project_name" {
 }
 
 variable "environment" {
-  description = "Ambiente de despliegue"
+  description = "Ambiente de despliegue (dev, qa, prod)"
   type        = string
 }
 
@@ -18,20 +18,18 @@ variable "private_subnets" {
   type        = list(string)
 }
 
-variable "db_username" {
-  description = "Usuario de la base de datos PostgreSQL"
+variable "ecs_security_group_id" {
+  description = "ID del grupo de seguridad de ECS"
   type        = string
-  sensitive   = true
+}
+
+variable "db_username" {
+  description = "Usuario de la base de datos"
+  type        = string
 }
 
 variable "db_password" {
-  description = "Contraseña de la base de datos PostgreSQL"
-  type        = string
-  sensitive   = true
-}
-
-variable "ecs_security_group_id" {
-  description = "ID del grupo de seguridad de ECS"
+  description = "Contraseña de la base de datos"
   type        = string
 }
 
