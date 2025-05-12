@@ -82,7 +82,7 @@ resource "aws_secretsmanager_secret_version" "rds_credentials" {
   secret_string = jsonencode({
     username = var.db_username
     password = var.db_password
-    host     = aws_db_instance.postgresql.endpoint
+    host     = replace(aws_db_instance.postgresql.endpoint, ":5432", "")
     port     = 5432
     dbname   = aws_db_instance.postgresql.db_name
     url      = "r2dbc:postgresql://${aws_db_instance.postgresql.endpoint}/${aws_db_instance.postgresql.db_name}"

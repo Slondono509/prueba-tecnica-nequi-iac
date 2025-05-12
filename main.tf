@@ -35,9 +35,10 @@ module "vpc" {
 module "iam" {
   source = "./modules/iam"
 
-  project_name = var.project_name
-  environment  = var.environment
-  vpc_id      = module.vpc.vpc_id
+  project_name    = var.project_name
+  environment     = var.environment
+  vpc_id         = module.vpc.vpc_id
+  container_port = var.container_port
 
   depends_on = [module.vpc]
 }

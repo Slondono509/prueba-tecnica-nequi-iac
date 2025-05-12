@@ -11,4 +11,10 @@ variable "environment" {
 variable "vpc_id" {
   description = "ID de la VPC"
   type        = string
+}
+
+variable "container_port" {
+  description = "Puerto expuesto por el contenedor"
+  type        = number
+  default     = 8080
 } 

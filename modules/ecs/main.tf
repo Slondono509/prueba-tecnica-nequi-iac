@@ -107,6 +107,10 @@ resource "aws_ecs_task_definition" "main" {
         {
           name  = "SPRING_PROFILES_ACTIVE"
           value = var.environment
+        },
+        {
+          name  = "SERVER_SERVLET_CONTEXT_PATH"
+          value = "/api"
         }
       ]
 
@@ -191,19 +195,6 @@ resource "aws_ecs_service" "main" {
   }
 }
 
-resource "aws_lb" "main" {
-  name               = "${var.project_name}-alb-${var.environment}"
-  internal           = false
-  load_balancer_type = "application"
-  security_groups    = [aws_security_group.alb.id]
-  subnets           = var.public_subnets
-
-  tags = {
-    Name        = "${var.project_name}-alb-${var.environment}"
-    Environment = var.environment
-  }
-}
-
 resource "aws_security_group" "alb" {
   name        = "${var.project_name}-alb-sg-${var.environment}"
   description = "Security group para ALB"
@@ -236,6 +227,19 @@ resource "aws_security_group" "alb" {
   }
 }
 
+resource "aws_lb" "main" {
+  name               = "${var.project_name}-alb-${var.environment}"
+  internal           = false
+  load_balancer_type = "application"
+  security_groups    = [aws_security_group.alb.id]
+  subnets           = var.public_subnets
+
+  tags = {
+    Name        = "${var.project_name}-alb-${var.environment}"
+    Environment = var.environment
+  }
+}
+
 resource "aws_lb_target_group" "main" {
   name        = "${var.project_name}-tg-${var.environment}"
   port        = var.container_port
@@ -245,14 +249,14 @@ resource "aws_lb_target_group" "main" {
 
   health_check {
     enabled             = true
-    healthy_threshold   = 3
-    interval            = 30
+    healthy_threshold   = 2
+    interval            = 15
     matcher             = "200"
     path                = var.health_check_path
     port                = "traffic-port"
     protocol            = "HTTP"
     timeout             = 5
-    unhealthy_threshold = 3
+    unhealthy_threshold = 2
   }
 
   tags = {
