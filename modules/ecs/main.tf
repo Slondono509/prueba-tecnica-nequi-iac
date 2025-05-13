@@ -117,7 +117,7 @@ resource "aws_ecs_task_definition" "main" {
       secrets = [
         {
           name      = "SPRING_R2DBC_URL"
-          valueFrom = "${var.db_secret_arn}:url::"
+          valueFrom = "${var.db_secret_arn}:host::"
         },
         {
           name      = "SPRING_R2DBC_USERNAME"
