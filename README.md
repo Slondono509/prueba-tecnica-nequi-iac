@@ -60,24 +60,48 @@ La infraestructura está compuesta por los siguientes componentes principales:
 
 ## 🛠 Uso
 
-1. Inicializar Terraform:
+1. Instalar cliente de postgresql:
+```bash
+sudo apt-get update
+sudo apt-get install postgresql-client
+```
+
+2. Inicializar Terraform:
 ```bash
 terraform init
 ```
 
-2. Revisar el plan de ejecución:
+3. Revisar el plan de ejecución:
 ```bash
 terraform plan
 ```
 
-3. Aplicar los cambios:
+4. Aplicar los cambios:
 ```bash
 terraform apply
 ```
 
-4. Para destruir la infraestructura:
+5. La primera vez que se ejecuta, puede dar un error, hay que importar unas variables de IAM
 ```bash
-terraform destroy
+terraform import module.ecs.aws_iam_role.ecs_execution_role nequi-prueba-ecs-execution-role-dev
+terraform import module.ecs.aws_iam_role.ecs_task_role nequi-prueba-ecs-task-role-dev
+```
+
+6. Revisar el plan de ejecución:
+```bash
+terraform plan
+```
+
+7. Aplicar los cambios:
+```bash
+terraform apply
+```
+
+8. Ir al Micro y subir la imagen de docker
+
+9. Subir tarea
+```bash
+aws ecs update-service --cluster nequi-prueba-cluster-dev --service nequi-prueba-service-dev --force-new-deployment
 ```
 
 ## 🔐 Variables Importantes
